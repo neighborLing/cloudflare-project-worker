@@ -27,11 +27,21 @@ This will start a local server at `http://localhost:8787`
 
 ## 🌐 API Endpoints
 
+All API endpoints are accessible via `meadery.win/api/*`:
+
 - `GET /` - Returns a simple hello message
-- `GET /api/hello` - Returns JSON response with timestamp
+- `GET /api/hello` - Returns JSON response with greeting and timestamp
+- `GET /api/status` - Returns service status information
+- `GET /api/info` - Returns API documentation and available endpoints
 
 ## 🚀 Deployment
 
+### Prerequisites
+1. A Cloudflare account
+2. Domain `meadery.win` added to your Cloudflare account
+3. Wrangler CLI installed
+
+### Steps
 1. Install Wrangler CLI globally (if not already installed):
    ```bash
    npm install -g wrangler
@@ -42,12 +52,20 @@ This will start a local server at `http://localhost:8787`
    wrangler login
    ```
 
-3. Configure your `wrangler.toml` with your account details
+3. Configure your `wrangler.toml`:
+   - Add your `account_id`
+   - Ensure `meadery.win` domain is configured in your Cloudflare account
 
 4. Deploy to Cloudflare:
    ```bash
    npm run deploy
    ```
+
+### Custom Domain Setup
+This worker is configured to handle requests to `meadery.win/api/*`. Make sure:
+- The domain `meadery.win` is added to your Cloudflare account
+- DNS is properly configured
+- The worker route is set up correctly
 
 ## 📁 Project Structure
 
