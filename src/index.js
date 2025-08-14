@@ -88,6 +88,66 @@ async function handleApiRequest(pathname, request, corsHeaders) {
     });
   }
   
+  // API endpoint: /api/chat
+  if (pathname === '/api/chat' && method === 'POST') {
+    try {
+      const requestData = await request.json();
+      
+      // 构建发送给DeepSeek API的请求
+      const deepseekRequest = {
+        model: requestData.model || "deepseek-chat",
+        messages: requestData.messages || [
+          {"role": "system", "content": "You are a helpful assistant."},
+          {"role": "user", "content": "Hello!"}
+        ],
+        stream: requestData.stream !== undefined ? requestData.stream : true // 默认启用流式响应
+      };
+      
+      // 调用DeepSeek API
+      const response = await fetch('https://api.deepseek.com/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer sk-4b919b2ca56644a4a058994c78ec5d2d'
+        },
+        body: JSON.stringify(deepseekRequest)
+      });
+      
+      // 如果是流式响应，直接转发流
+      if (deepseekRequest.stream) {
+        return new Response(response.body, {
+          headers: {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            ...corsHeaders
+          }
+        });
+      } else {
+        // 非流式响应，返回JSON
+        const result = await response.json();
+        return new Response(JSON.stringify(result, null, 2), {
+          headers: {
+            'Content-Type': 'application/json',
+            ...corsHeaders
+          }
+        });
+      }
+      
+    } catch (error) {
+      return new Response(JSON.stringify({
+        error: 'Failed to process chat request',
+        message: error.message
+      }, null, 2), {
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json',
+          ...corsHeaders
+        }
+      });
+    }
+  }
+  
   // API endpoint: /api/info
   if (pathname === '/api/info') {
     const data = {
@@ -96,7 +156,8 @@ async function handleApiRequest(pathname, request, corsHeaders) {
       endpoints: [
         '/api/hello - Get hello message',
         '/api/status - Get service status',
-        '/api/info - Get API information'
+        '/api/info - Get API information',
+        '/api/chat - Chat with DeepSeek AI (POST)'
       ],
       timestamp: new Date().toISOString()
     };
@@ -113,7 +174,7 @@ async function handleApiRequest(pathname, request, corsHeaders) {
   return new Response(JSON.stringify({
     error: 'API endpoint not found',
     path: pathname,
-    available_endpoints: ['/api/hello', '/api/status', '/api/info']
+    available_endpoints: ['/api/hello', '/api/status', '/api/info', '/api/chat']
   }, null, 2), {
     status: 404,
     headers: {

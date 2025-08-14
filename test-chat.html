@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepSeek Chat Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+        textarea, input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        textarea:focus, input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .response {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        .error {
+            border-left-color: #e74c3c;
+            background: #fdf2f2;
+        }
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💬 DeepSeek Chat API 测试</h1>
+        
+        <div class="form-group">
+            <label for="apiUrl">API 地址:</label>
+            <input type="text" id="apiUrl" value="http://localhost:8787/api/chat" placeholder="输入你的API地址">
+        </div>
+        
+        <div class="form-group">
+            <label for="userMessage">用户消息:</label>
+            <textarea id="userMessage" rows="4" placeholder="输入你想问的问题...">你好，请介绍一下你自己</textarea>
+        </div>
+        
+        <div class="form-group">
+            <label for="systemMessage">系统提示 (可选):</label>
+            <textarea id="systemMessage" rows="2" placeholder="设置AI的角色和行为...">You are a helpful assistant.</textarea>
+        </div>
+        
+        <div class="form-group">
+            <label>
+                <input type="checkbox" id="streamMode" checked> 启用流式响应 (实时显示)
+            </label>
+        </div>
+        
+        <button onclick="sendChatRequest()" id="sendBtn">发送消息 💘</button>
+        
+        <div id="response" class="response" style="display: none;">
+            <h3>响应结果:</h3>
+            <pre id="responseContent"></pre>
+        </div>
+    </div>
+
+    <script>
+        async function sendChatRequest() {
+            const sendBtn = document.getElementById('sendBtn');
+            const responseDiv = document.getElementById('response');
+            const responseContent = document.getElementById('responseContent');
+            
+            const apiUrl = document.getElementById('apiUrl').value;
+            const userMessage = document.getElementById('userMessage').value;
+            const systemMessage = document.getElementById('systemMessage').value;
+            const streamMode = document.getElementById('streamMode').checked;
+            
+            if (!userMessage.trim()) {
+                alert('请输入用户消息！');
+                return;
+            }
+            
+            sendBtn.disabled = true;
+            sendBtn.textContent = '发送中... ⏳';
+            responseDiv.style.display = 'block';
+            responseDiv.className = 'response';
+            responseContent.textContent = streamMode ? 'AI正在思考中... 💭' : '等待响应...';
+            
+            const requestData = {
+                model: "deepseek-chat",
+                messages: [
+                    {"role": "system", "content": systemMessage || "You are a helpful assistant."},
+                    {"role": "user", "content": userMessage}
+                ],
+                stream: streamMode
+            };
+            
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+                
+                if (streamMode && response.body) {
+                    // 处理流式响应
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    let aiMessage = '';
+                    
+                    responseContent.textContent = 'AI回复: ';
+                    
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        
+                        const chunk = decoder.decode(value);
+                        const lines = chunk.split('\n');
+                        
+                        for (const line of lines) {
+                            if (line.startsWith('data: ')) {
+                                const data = line.slice(6);
+                                if (data === '[DONE]') {
+                                    responseContent.textContent += '\n\n✨ 回复完成！';
+                                    break;
+                                }
+                                
+                                try {
+                                    const parsed = JSON.parse(data);
+                                    if (parsed.choices && parsed.choices[0] && parsed.choices[0].delta && parsed.choices[0].delta.content) {
+                                        const content = parsed.choices[0].delta.content;
+                                        aiMessage += content;
+                                        responseContent.textContent = `AI回复: ${aiMessage}`;
+                                    }
+                                } catch (e) {
+                                    // 忽略解析错误
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    // 处理非流式响应
+                    const result = await response.json();
+                    
+                    // 如果有AI回复，显示更友好的格式
+                    if (result.choices && result.choices[0] && result.choices[0].message) {
+                        const aiMessage = result.choices[0].message.content;
+                        responseContent.textContent = `AI回复: ${aiMessage}\n\n完整响应:\n${JSON.stringify(result, null, 2)}`;
+                    } else {
+                        responseContent.textContent = JSON.stringify(result, null, 2);
+                    }
+                }
+                
+            } catch (error) {
+                responseDiv.className = 'response error';
+                responseContent.textContent = `请求失败: ${error.message}`;
+            }
+            
+            sendBtn.disabled = false;
+            sendBtn.textContent = '发送消息 💘';
+        }
+        
+        // 回车发送
+        document.getElementById('userMessage').addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                sendChatRequest();
+            }
+        });
+    </script>
+</body>
+</html>
