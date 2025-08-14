@@ -1,12 +1,14 @@
 /**
- * Welcome to Cloudflare Workers! This is your first worker.
- *
- * - Run `npm run dev` in your terminal to start a development server
- * - Open a browser tab at http://localhost:8787/ to see your worker in action
- * - Run `npm run deploy` to publish your worker
- *
- * Learn more at https://developers.cloudflare.com/workers/
+ * Cloudflare Worker with GraphQL Support
+ * 
+ * Features:
+ * - REST API endpoints
+ * - GraphQL API with Apollo integration
+ * - DeepSeek AI chat functionality
+ * - CORS support
  */
+
+import { handleGraphQLRequest } from './graphql/server.js';
 
 export default {
   async fetch(request, env, ctx) {
@@ -23,6 +25,11 @@ export default {
     // Handle CORS preflight requests
     if (request.method === 'OPTIONS') {
       return new Response(null, { headers: corsHeaders });
+    }
+    
+    // GraphQL endpoint - accessible via meadery.win/api/graphql
+    if (pathname === '/api/graphql') {
+      return handleGraphQLRequest(request);
     }
     
     // API Routes - accessible via meadery.win/api/*
@@ -151,13 +158,21 @@ async function handleApiRequest(pathname, request, corsHeaders) {
   // API endpoint: /api/info
   if (pathname === '/api/info') {
     const data = {
-      project: 'Cloudflare Project Worker',
+      project: 'Cloudflare Project Worker with GraphQL',
       domain: 'meadery.win',
       endpoints: [
         '/api/hello - Get hello message',
         '/api/status - Get service status',
         '/api/info - Get API information',
-        '/api/chat - Chat with DeepSeek AI (POST)'
+        '/api/chat - Chat with DeepSeek AI (POST)',
+        '/api/graphql - GraphQL endpoint (GET/POST)'
+      ],
+      features: [
+        'REST API endpoints',
+        'GraphQL API with Yoga',
+        'DeepSeek AI integration',
+        'CORS support',
+        'Real-time chat capabilities'
       ],
       timestamp: new Date().toISOString()
     };
@@ -174,7 +189,7 @@ async function handleApiRequest(pathname, request, corsHeaders) {
   return new Response(JSON.stringify({
     error: 'API endpoint not found',
     path: pathname,
-    available_endpoints: ['/api/hello', '/api/status', '/api/info', '/api/chat']
+    available_endpoints: ['/api/hello', '/api/status', '/api/info', '/api/chat', '/api/graphql']
   }, null, 2), {
     status: 404,
     headers: {
