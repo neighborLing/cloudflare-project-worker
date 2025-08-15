@@ -7,6 +7,14 @@ routes = [
   { pattern = "meadery.win/api/*", zone_name = "meadery.win" }
 ]
 
+# Environment variables (non-sensitive)
+[vars]
+API_BASE_URL = "https://api.deepseek.com"
+DEBUG_MODE = "false"
+
+# Secrets (sensitive data - set via: wrangler secret put DEEPSEEK_API_KEY)
+# DEEPSEEK_API_KEY = "your-api-key-here" (DO NOT put actual key here!)
+
 # Uncomment and configure these when you're ready to deploy
 # account_id = "your-account-id"
 # workers_dev = true

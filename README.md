@@ -33,6 +33,8 @@ All API endpoints are accessible via `meadery.win/api/*`:
 - `GET /api/hello` - Returns JSON response with greeting and timestamp
 - `GET /api/status` - Returns service status information
 - `GET /api/info` - Returns API documentation and available endpoints
+- `POST /api/chat` - Chat with DeepSeek AI (requires API key configuration)
+- `GET/POST /api/graphql` - GraphQL endpoint
 
 ## 🚀 Deployment
 
@@ -80,6 +82,40 @@ cloudflare-project-worker/
 
 ## 🔧 Configuration
 
+### Environment Variables
+
+This project uses environment variables for secure configuration:
+
+#### Setting up API Keys (Secrets)
+```bash
+# Set DeepSeek API key (required for /api/chat endpoint)
+wrangler secret put DEEPSEEK_API_KEY
+# Enter your API key when prompted
+
+# List all configured secrets
+wrangler secret list
+
+# Delete a secret if needed
+wrangler secret delete DEEPSEEK_API_KEY
+```
+
+#### Environment Variables in wrangler.toml
+```toml
+# Non-sensitive configuration
+[vars]
+API_BASE_URL = "https://api.deepseek.com"
+DEBUG_MODE = "false"
+
+# Different environments
+[env.production.vars]
+DEBUG_MODE = "false"
+
+[env.staging.vars]
+DEBUG_MODE = "true"
+```
+
+### General Configuration
+
 Edit `wrangler.toml` to configure:
 - Worker name
 - Account ID
@@ -95,5 +131,3 @@ Edit `wrangler.toml` to configure:
 ## 📄 License
 
 MIT
-
-sk-4b919b2ca56644a4a058994c78ec5d2d

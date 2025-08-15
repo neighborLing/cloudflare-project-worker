@@ -98,6 +98,20 @@ async function handleApiRequest(pathname, request, corsHeaders) {
   // API endpoint: /api/chat
   if (pathname === '/api/chat' && method === 'POST') {
     try {
+      // 检查API密钥是否设置
+      if (!env.DEEPSEEK_API_KEY) {
+        return new Response(JSON.stringify({
+          error: 'API key not configured',
+          message: 'Please set DEEPSEEK_API_KEY using: wrangler secret put DEEPSEEK_API_KEY'
+        }, null, 2), {
+          status: 500,
+          headers: {
+            'Content-Type': 'application/json',
+            ...corsHeaders
+          }
+        });
+      }
+      
       const requestData = await request.json();
       
       // 构建发送给DeepSeek API的请求
@@ -110,12 +124,15 @@ async function handleApiRequest(pathname, request, corsHeaders) {
         stream: requestData.stream !== undefined ? requestData.stream : true // 默认启用流式响应
       };
       
+      // 使用环境变量中的API基础URL
+      const apiUrl = `${env.API_BASE_URL || 'https://api.deepseek.com'}/chat/completions`;
+      
       // 调用DeepSeek API
-      const response = await fetch('https://api.deepseek.com/chat/completions', {
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer sk-4b919b2ca56644a4a058994c78ec5d2d'
+          'Authorization': `Bearer ${env.DEEPSEEK_API_KEY}`
         },
         body: JSON.stringify(deepseekRequest)
       });
